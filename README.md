@@ -121,5 +121,5 @@ acknowledgments 🙏:
   - screen-brightness-control: https://github.com/Crozzers/screen_brightness_control – Brightness brilliance 💡
 
 footer: |
-  Built with 💻 and ☕ by [yourusername]. Enjoy the gesture-powered future! 
+  Built with 💻 and ☕ by [HADJADJDAOUD]. Enjoy the gesture-powered future! 
  ## suuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuui
