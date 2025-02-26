@@ -6,8 +6,10 @@ import HandTrackingModule as htm
 from comtypes import CLSCTX_ALL
 from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
 import screen_brightness_control as sbc
-import speech_recognition as sr
-import threading
+import sounddevice as sd
+import queue
+import json
+from vosk import Model, KaldiRecognizer
 
 # Initialize camera settings
 wCam, hCam = 1280, 720
@@ -32,34 +34,43 @@ volPer = 0
 brightBar = 400
 brightPer = 0
 
+# Load Vosk Speech Recognition Model
+model = Model("vosk-model")  # Make sure this path is correct
+recognizer = KaldiRecognizer(model, 16000)
+mic_queue = queue.Queue()
+
 # Voice control variables
 control_active = False  # Flag to toggle hand control
-recognizer = sr.Recognizer()
-mic = sr.Microphone()
+
+# Function to process live audio
+def callback(indata, frames, time, status):
+    """Reads audio from the microphone and puts it in a queue."""
+    if status:
+        print(status, flush=True)
+    mic_queue.put(bytes(indata))
 
 def listen_for_commands():
     """Background thread to listen for voice commands."""
     global control_active
-    with mic as source:
-        recognizer.adjust_for_ambient_noise(source, duration=1)  # Adjust for noise
+    with sd.RawInputStream(samplerate=16000, blocksize=8000, dtype="int16",
+                           channels=1, callback=callback):
         print("Say 'start' to enable hand control or 'stop' to disable it.")
         while True:
-            try:
-                audio = recognizer.listen(source, timeout=None)
-                command = recognizer.recognize_google(audio).lower()
-                print(f"Command heard: {command}")
-                if "start" in command:
-                    control_active = True
-                    print("Hand control activated.")
-                elif "stop" in command:
-                    control_active = False
-                    print("Hand control deactivated.")
-            except sr.UnknownValueError:
-                pass  # Ignore if speech is unclear
-            except sr.RequestError as e:
-                print(f"Speech recognition error: {e}")
+            data = mic_queue.get()
+            if recognizer.AcceptWaveform(data):
+                result = json.loads(recognizer.Result())
+                command = result.get("text", "").lower()
+                if command:
+                    print(f"Command heard: {command}")
+                    if "start" in command:
+                        control_active = True
+                        print("Hand control activated.")
+                    elif "stop" in command:
+                        control_active = False
+                        print("Hand control deactivated.")
 
 # Start voice listener in a separate thread
+import threading
 voice_thread = threading.Thread(target=listen_for_commands, daemon=True)
 voice_thread.start()
 
