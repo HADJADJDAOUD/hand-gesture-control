@@ -44,7 +44,7 @@ control_active = False  # Flag to toggle hand control
 
 # Function to process live audio
 def callback(indata, frames, time, status):
-    """Reads audio from the microphone and puts it in a queue."""
+    """reads the words from the mic ."""
     if status:
         print(status, flush=True)
     mic_queue.put(bytes(indata))
